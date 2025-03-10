@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Interactivo</title>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f8f9fa, #e0e0e0);
+            font-family: 'Roboto', sans-serif;
+        }
+        .glass-container {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        #map {
+            height: 500px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="d-flex flex-column align-items-center p-4">
+    <div class="container glass-container text-center">
+        <h2 class="text-danger">Mapa Interactivo</h2>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <input id="latUser" type="number" class="form-control" placeholder="Latitud Usuario">
+                <input id="lngUser" type="number" class="form-control mt-2" placeholder="Longitud Usuario">
+                <input id="radiusUser" type="number" class="form-control mt-2" placeholder="Radio Usuario">
+            </div>
+            <div class="col-md-6">
+                <input id="latPDV" type="number" class="form-control" placeholder="Latitud PDV">
+                <input id="lngPDV" type="number" class="form-control mt-2" placeholder="Longitud PDV">
+                <input id="radiusPDV" type="number" class="form-control mt-2" placeholder="Radio PDV">
+            </div>
+        </div>
+        <button class="btn btn-danger mt-3" onclick="drawMap()">Graficar</button>
+    </div>
+    <div class="container mt-4 glass-container">
+        <div id="map"></div>
+    </div>
+
+    <script>
+        var map = L.map('map').setView([10.3913661, -75.480072], 20);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        function drawMap() {
+            map.eachLayer(layer => {
+                if (!!layer.toGeoJSON) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            let latUser = parseFloat(document.getElementById('latUser').value);
+            let lngUser = parseFloat(document.getElementById('lngUser').value);
+            let radiusUser = parseFloat(document.getElementById('radiusUser').value);
+            let latPDV = parseFloat(document.getElementById('latPDV').value);
+            let lngPDV = parseFloat(document.getElementById('lngPDV').value);
+            let radiusPDV = parseFloat(document.getElementById('radiusPDV').value);
+
+            let userCircle = L.circle([latUser, lngUser], {
+                color: 'red',
+                fillColor: '#f03',
+                fillOpacity: 0.5,
+                radius: radiusUser
+            }).addTo(map);
+
+            let pdvCircle = L.circle([latPDV, lngPDV], {
+                color: 'blue',
+                fillColor: '#03f',
+                fillOpacity: 0.5,
+                radius: radiusPDV
+            }).addTo(map);
+
+            let distance = map.distance([latUser, lngUser], [latPDV, lngPDV]);
+            if (distance <= radiusUser + radiusPDV) {
+                userCircle.setStyle({ fillColor: 'green' });
+                pdvCircle.setStyle({ fillColor: 'green' });
+            }
+        }
+    </script>
+</body>
+</html>
