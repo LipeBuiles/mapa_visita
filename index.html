@@ -42,10 +42,28 @@
         </form>
     </div>
     
+    <!-- Movemos los labels para mostrar las distancias aquí, entre los inputs y el mapa -->
+    <div class="container mt-4 glass-container">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="alert alert-info">
+                    <strong>Distancia entre puntos:</strong> 
+                    <span id="distance-points" class="badge bg-primary">Calcular</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="alert alert-info">
+                    <strong>Distancia entre perímetros:</strong> 
+                    <span id="distance-perimeters" class="badge bg-primary">Calcular</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="container mt-4 glass-container">
         <div id="map"></div>
     </div>
-
+    
     <!-- Modal con loader centrado y más grande -->
     <div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -124,9 +142,25 @@
             let lngPDV = parseFloat(document.getElementById('lngPDV').value);
             let radiusPDV = parseFloat(document.getElementById('radiusPDV').value);
 
-            let distance = Math.sqrt(Math.pow(latUser - latPDV, 2) + Math.pow(lngUser - lngPDV, 2));
-            let isIntersecting = distance < (radiusUser / 111000 + radiusPDV / 111000);
+            // Calcular la distancia entre los puntos (en metros)
+            let distancePoints = calculateDistance(latUser, lngUser, latPDV, lngPDV);
+            
+            // Calcular la distancia entre los perímetros (en metros)
+            // Si es negativa, significa que los círculos se superponen
+            let distancePerimeters = distancePoints - (radiusUser + radiusPDV);
+            
+            // Actualizar los labels
+            document.getElementById('distance-points').textContent = distancePoints.toFixed(2) + ' metros';
+            document.getElementById('distance-perimeters').textContent = 
+                distancePerimeters < 0 ? 
+                'Superpuestos (' + Math.abs(distancePerimeters).toFixed(2) + ' m)' : 
+                distancePerimeters.toFixed(2) + ' metros';
 
+            // Cambiar el color de los badges según la distancia
+            document.getElementById('distance-perimeters').className = 
+                distancePerimeters < 0 ? 'badge bg-success' : 'badge bg-danger';
+
+            let isIntersecting = distancePerimeters < 0;
             let borderColor = 'black';
             let fillColor = isIntersecting ? 'green' : '#003366';
 
@@ -135,6 +169,20 @@
 
             let bounds = L.latLngBounds([ [latUser, lngUser], [latPDV, lngPDV] ]);
             map.fitBounds(bounds, { padding: [50, 50] });
+        }
+        
+        // Función para calcular la distancia entre dos puntos geográficos en metros
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Radio de la Tierra en metros
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+            return distance;
         }
     </script>
 </body>
