@@ -11,14 +11,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         body {
-            background: linear-gradient(135deg, #94cd14, #4caf50); /* Verde claro a verde más oscuro */
+            background: #ffffff; /* Verde claro a verde más oscuro */
             font-family: 'Poppins', sans-serif;
             min-height: 100vh;
         }
         .glass-container {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(17, 4, 75, 0.15);
             border-radius: 16px;
             padding: 30px;
             backdrop-filter: blur(12px);
@@ -52,7 +53,7 @@
             border-width: 0.4em;
         }
         h2 {
-            color: #fff !important;
+            color: #000000 !important;
             font-weight: 600;
             margin-bottom: 1.5rem;
         }
@@ -115,7 +116,7 @@
 </head>
 <body class="d-flex flex-column align-items-center p-3 p-md-4">
     <div class="container glass-container text-center mb-4 col-lg-8 col-md-10">
-        <h2 class="text-white">Mapa Interactivo</h2>
+        <h2 class="text-danger">Mapa Interactivo</h2>
         <form id="mapForm" class="row g-3 needs-validation" novalidate>
             <div class="col-md-6">
                 <div class="form-floating mb-3">
