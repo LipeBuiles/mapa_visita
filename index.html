@@ -58,6 +58,18 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Agregamos el switch para alternar entre visualizaciones -->
+        <div class="row mt-3">
+            <div class="col-12 text-center">
+                <div class="form-check form-switch d-flex justify-content-center align-items-center">
+                    <input class="form-check-input me-2" type="checkbox" id="distanceSwitch">
+                    <label class="form-check-label" for="distanceSwitch">
+                        <span id="switchLabel">Mostrar distancia entre puntos</span>
+                    </label>
+                </div>
+            </div>
+        </div>
     </div>
     
     <div class="container mt-4 glass-container">
@@ -81,6 +93,36 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
+        
+        // Variables globales para almacenar las líneas y marcadores
+        var pointsLine, perimeterLine, pointLabel, perimeterLabel;
+        
+        // Configurar el switch para cambiar entre visualizaciones
+        document.getElementById('distanceSwitch').addEventListener('change', function(event) {
+            if (pointsLine && perimeterLine) {
+                toggleDistanceView(this.checked);
+            }
+        });
+        
+        function toggleDistanceView(showPerimeters) {
+            // Actualizar la etiqueta del switch
+            document.getElementById('switchLabel').textContent = showPerimeters ? 
+                'Mostrar distancia entre puntos' : 'Mostrar distancia entre perímetros';
+                
+            // Mostrar/ocultar líneas según la selección (una u otra, no ambas)
+            if (pointsLine) pointsLine.setStyle({ opacity: showPerimeters ? 0 : 0.7 });
+            if (perimeterLine) perimeterLine.setStyle({ opacity: showPerimeters ? 0.7 : 0 });
+            
+            if (pointLabel) {
+                pointLabel.getElement().style.opacity = showPerimeters ? '0' : '1';
+                pointLabel.getElement().style.zIndex = showPerimeters ? '-1' : '1000';
+            }
+            
+            if (perimeterLabel) {
+                perimeterLabel.getElement().style.opacity = showPerimeters ? '1' : '0';
+                perimeterLabel.getElement().style.zIndex = showPerimeters ? '1000' : '-1';
+            }
+        }
 
         document.getElementById('mapForm').addEventListener('submit', function(event) {
             event.preventDefault();
@@ -164,9 +206,78 @@
             let borderColor = 'black';
             let fillColor = isIntersecting ? 'green' : '#003366';
 
-            L.circle([latUser, lngUser], { color: borderColor, fillColor: fillColor, fillOpacity: 0.5, radius: radiusUser }).addTo(map);
-            L.circle([latPDV, lngPDV], { color: borderColor, fillColor: fillColor, fillOpacity: 0.5, radius: radiusPDV }).addTo(map);
+            // Agregar los círculos para el usuario y el PDV
+            let userCircle = L.circle([latUser, lngUser], { 
+                color: borderColor, 
+                fillColor: fillColor, 
+                fillOpacity: 0.5, 
+                radius: radiusUser 
+            }).addTo(map);
+            
+            let pdvCircle = L.circle([latPDV, lngPDV], { 
+                color: borderColor, 
+                fillColor: fillColor, 
+                fillOpacity: 0.5, 
+                radius: radiusPDV 
+            }).addTo(map);
 
+            // Agregar una línea recta entre los puntos centrales (distancia entre puntos)
+            pointsLine = L.polyline([[latUser, lngUser], [latPDV, lngPDV]], {
+                color: 'blue',
+                weight: 3,
+                dashArray: '5, 10',
+                opacity: 0.7
+            }).addTo(map);
+            
+            // Agregar etiqueta a la línea entre puntos
+            let midPoint = [(latUser + latPDV) / 2, (lngUser + lngPDV) / 2];
+            pointLabel = L.marker(midPoint, {
+                icon: L.divIcon({
+                    className: 'text-labels',
+                    html: `<span class="badge bg-primary">${distancePoints.toFixed(2)} m</span>`,
+                    iconSize: [100, 20],
+                    iconAnchor: [50, 10]
+                })
+            }).addTo(map);
+            
+            // Calcular puntos en los bordes de los círculos para la línea de perímetros
+            let angle = Math.atan2(latPDV - latUser, lngPDV - lngUser);
+            
+            // Punto en el borde del círculo del usuario
+            let userEdgeLat = latUser + radiusUser * Math.sin(angle) / 111111;
+            let userEdgeLng = lngUser + radiusUser * Math.cos(angle) / (111111 * Math.cos(latUser * Math.PI / 180));
+            
+            // Punto en el borde del círculo del PDV
+            let pdvEdgeLat = latPDV - radiusPDV * Math.sin(angle) / 111111;
+            let pdvEdgeLng = lngPDV - radiusPDV * Math.cos(angle) / (111111 * Math.cos(latPDV * Math.PI / 180));
+            
+            // Dibujar línea entre los bordes de los círculos (o línea de superposición si es el caso)
+            perimeterLine = L.polyline([[userEdgeLat, userEdgeLng], [pdvEdgeLat, pdvEdgeLng]], {
+                color: distancePerimeters < 0 ? 'green' : 'red',
+                weight: 3,
+                dashArray: '10, 5',
+                opacity: 0.2 // Inicialmente menos visible
+            }).addTo(map);
+            
+            // Agregar etiqueta a la línea entre perímetros
+            let midPerimeterPoint = [(userEdgeLat + pdvEdgeLat) / 2, (userEdgeLng + pdvEdgeLng) / 2];
+            let perimeterBadgeClass = distancePerimeters < 0 ? 'bg-success' : 'bg-danger';
+            let perimeterText = distancePerimeters < 0 ? 
+                `Superposición: ${Math.abs(distancePerimeters).toFixed(2)} m` : 
+                `${distancePerimeters.toFixed(2)} m`;
+            
+            perimeterLabel = L.marker(midPerimeterPoint, {
+                icon: L.divIcon({
+                    className: 'text-labels',
+                    html: `<span class="badge ${perimeterBadgeClass}">${perimeterText}</span>`,
+                    iconSize: [120, 20],
+                    iconAnchor: [60, 10]
+                })
+            }).addTo(map);
+
+            // Por defecto, mostrar la vista de distancia entre puntos (el switch está en "off")
+            toggleDistanceView(document.getElementById('distanceSwitch').checked);
+            
             let bounds = L.latLngBounds([ [latUser, lngUser], [latPDV, lngPDV] ]);
             map.fitBounds(bounds, { padding: [50, 50] });
         }
