@@ -3,258 +3,687 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa Interactivo</title>
+    <meta name="description" content="Aplicación interactiva para visualizar y calcular distancias entre ubicaciones de usuario y puntos de venta">
+    <meta name="keywords" content="mapa, distancia, geolocalización, PDV, usuario">
+    <meta name="author" content="LipeBuiles">
+    <title>Mapa Interactivo - Calculadora de Distancias</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Critical CSS and JS -->
+    <link rel="preload" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" as="style">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style">
+    
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
-        body { background: linear-gradient(135deg, #f8f9fa, #e0e0e0); font-family: 'Roboto', sans-serif; }
-        .glass-container { background: rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 20px; backdrop-filter: blur(10px); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); }
-        #map { height: 500px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); position: relative; }
-        .modal-content { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border: none; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
-        .spinner-border { width: 5rem; height: 5rem; border-width: 0.6rem; }
-        .center-map-btn { 
-            position: absolute; 
-            top: 10px; 
-            right: 10px; 
-            z-index: 1000; 
-            background: rgba(255, 255, 255, 0.9); 
-            border: none; 
-            border-radius: 5px; 
-            padding: 8px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
-            cursor: pointer;
-            transition: all 0.3s ease;
+        :root {
+            --primary-blue: #007bff;
+            --danger-red: #dc3545;
+            --success-green: #28a745;
+            --glass-bg: rgba(255, 255, 255, 0.2);
+            --glass-bg-hover: rgba(255, 255, 255, 0.9);
+            --shadow-light: 0 4px 10px rgba(0, 0, 0, 0.1);
+            --shadow-medium: 0 6px 15px rgba(0, 0, 0, 0.15);
+            --shadow-strong: 0 4px 12px rgba(0, 0, 0, 0.3);
+            --border-radius: 15px;
+            --border-radius-small: 8px;
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-fast: all 0.1s ease;
         }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body { 
+            background: linear-gradient(135deg, #f8f9fa, #e0e0e0); 
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .glass-container { 
+            background: var(--glass-bg);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-light);
+            transition: var(--transition-smooth);
+            will-change: transform, box-shadow;
+        }
+
+        .glass-container:hover {
+            box-shadow: var(--shadow-medium);
+            transform: translateY(-2px);
+        }
+
+        #map { 
+            height: 500px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-light);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .center-map-btn { 
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: var(--glass-bg-hover);
+            border: none;
+            border-radius: var(--border-radius-small);
+            padding: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            will-change: transform;
+        }
+
         .center-map-btn:hover { 
-            background: rgba(255, 255, 255, 1); 
-            transform: scale(1.1); 
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.1) translateY(-2px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .center-map-btn:active {
+            transform: scale(1.05) translateY(-1px);
+            transition: var(--transition-fast);
+        }
+
+        .form-control {
+            transition: var(--transition-smooth);
+            border: 2px solid transparent;
+            will-change: transform, border-color;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .form-control:hover:not(:focus) {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+            will-change: transform;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+            transition: var(--transition-fast);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+            pointer-events: none;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .badge {
+            transition: var(--transition-smooth);
+            will-change: transform;
+        }
+
+        .badge:hover {
+            transform: scale(1.05);
+        }
+
+        .alert {
+            transition: var(--transition-smooth);
+            border: none;
+            will-change: transform;
+        }
+
+        .alert:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .modal.fade .modal-dialog {
+            transition: transform 0.3s ease-out;
+            transform: translate(0, -50px);
+        }
+
+        .modal.show .modal-dialog {
+            transform: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner-border {
+            animation: spin 1s linear infinite;
+            width: 5rem;
+            height: 5rem;
+            border-width: 0.6rem;
+        }
+
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(20px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        h2 {
+            transition: var(--transition-smooth);
+            will-change: transform;
+        }
+
+        h2:hover {
+            transform: scale(1.02);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .modal-content { 
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: none;
+            box-shadow: var(--shadow-light);
+        }
+
+        /* Optimización para dispositivos móviles */
+        @media (max-width: 768px) {
+            .glass-container {
+                padding: 15px;
+                margin: 10px;
+            }
+            
+            #map {
+                height: 400px;
+            }
+            
+            .spinner-border {
+                width: 3rem;
+                height: 3rem;
+                border-width: 0.4rem;
+            }
+        }
+
+        /* Reducir animaciones para usuarios que prefieren menos movimiento */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
         }
     </style>
 </head>
 <body class="d-flex flex-column align-items-center p-4">
-    <div class="container glass-container text-center">
-        <h2 class="text-danger">Mapa Interactivo</h2>
-        <form id="mapForm" class="row g-3 needs-validation" novalidate>
-            <div class="col-md-6">
-                <input id="latUser" type="text" class="form-control" placeholder="Latitud Usuario (-90 a 90)" required>
-                <div class="invalid-feedback">Ingrese un valor entre -90 y 90.</div>
-                <input id="lngUser" type="text" class="form-control mt-2" placeholder="Longitud Usuario (-180 a 180)" required>
-                <div class="invalid-feedback">Ingrese un valor entre -180 y 180.</div>
-                <input id="radiusUser" type="text" class="form-control mt-2" placeholder="Radio Usuario (> 0)" required>
-                <div class="invalid-feedback">Ingrese un número mayor a 0.</div>
-            </div>
-            <div class="col-md-6">
-                <input id="latPDV" type="text" class="form-control" placeholder="Latitud PDV (-90 a 90)" required>
-                <div class="invalid-feedback">Ingrese un valor entre -90 y 90.</div>
-                <input id="lngPDV" type="text" class="form-control mt-2" placeholder="Longitud PDV (-180 a 180)" required>
-                <div class="invalid-feedback">Ingrese un valor entre -180 y 180.</div>
-                <input id="radiusPDV" type="text" class="form-control mt-2" placeholder="Radio PDV (> 0)" required>
-                <div class="invalid-feedback">Ingrese un número mayor a 0.</div>
-            </div>
+    <!-- Header section -->
+    <header class="container glass-container text-center fade-in" role="banner">
+        <h1 class="text-danger">Mapa Interactivo</h1>
+        
+        <!-- Input form with improved accessibility -->
+        <form id="mapForm" class="row g-3 needs-validation" novalidate role="form" aria-label="Formulario de coordenadas">
+            <fieldset class="col-md-6">
+                <legend class="visually-hidden">Datos del Usuario</legend>
+                <div class="input-group">
+                    <label for="latUser" class="visually-hidden">Latitud del Usuario</label>
+                    <input id="latUser" type="number" step="any" class="form-control" 
+                           placeholder="Latitud Usuario (-90 a 90)" 
+                           aria-describedby="latUser-help" required>
+                    <div id="latUser-help" class="invalid-feedback">Ingrese un valor entre -90 y 90.</div>
+                </div>
+                
+                <div class="input-group mt-2">
+                    <label for="lngUser" class="visually-hidden">Longitud del Usuario</label>
+                    <input id="lngUser" type="number" step="any" class="form-control" 
+                           placeholder="Longitud Usuario (-180 a 180)" 
+                           aria-describedby="lngUser-help" required>
+                    <div id="lngUser-help" class="invalid-feedback">Ingrese un valor entre -180 y 180.</div>
+                </div>
+                
+                <div class="input-group mt-2">
+                    <label for="radiusUser" class="visually-hidden">Radio del Usuario en metros</label>
+                    <input id="radiusUser" type="number" step="any" min="0.1" class="form-control" 
+                           placeholder="Radio Usuario (> 0)" 
+                           aria-describedby="radiusUser-help" required>
+                    <div id="radiusUser-help" class="invalid-feedback">Ingrese un número mayor a 0.</div>
+                </div>
+            </fieldset>
+            
+            <fieldset class="col-md-6">
+                <legend class="visually-hidden">Datos del PDV</legend>
+                <div class="input-group">
+                    <label for="latPDV" class="visually-hidden">Latitud del PDV</label>
+                    <input id="latPDV" type="number" step="any" class="form-control" 
+                           placeholder="Latitud PDV (-90 a 90)" 
+                           aria-describedby="latPDV-help" required>
+                    <div id="latPDV-help" class="invalid-feedback">Ingrese un valor entre -90 y 90.</div>
+                </div>
+                
+                <div class="input-group mt-2">
+                    <label for="lngPDV" class="visually-hidden">Longitud del PDV</label>
+                    <input id="lngPDV" type="number" step="any" class="form-control" 
+                           placeholder="Longitud PDV (-180 a 180)" 
+                           aria-describedby="lngPDV-help" required>
+                    <div id="lngPDV-help" class="invalid-feedback">Ingrese un valor entre -180 y 180.</div>
+                </div>
+                
+                <div class="input-group mt-2">
+                    <label for="radiusPDV" class="visually-hidden">Radio del PDV en metros</label>
+                    <input id="radiusPDV" type="number" step="any" min="0.1" class="form-control" 
+                           placeholder="Radio PDV (> 0)" 
+                           aria-describedby="radiusPDV-help" required>
+                    <div id="radiusPDV-help" class="invalid-feedback">Ingrese un número mayor a 0.</div>
+                </div>
+            </fieldset>
+            
             <div class="col-12">
-                <button class="btn btn-danger mt-3" type="submit">Graficar</button>
+                <button class="btn btn-danger mt-3" type="submit" aria-label="Graficar ubicaciones en el mapa">
+                    <i class="fas fa-map-marked-alt me-2" aria-hidden="true"></i>
+                    Graficar
+                </button>
             </div>
         </form>
-    </div>
-    
-    <!-- Movemos los labels para mostrar las distancias aquí, entre los inputs y el mapa -->
-    <div class="container mt-4 glass-container">
+    </header>
+
+    <!-- Results section -->
+    <section class="container mt-4 glass-container fade-in" style="animation-delay: 0.2s;" 
+             role="region" aria-label="Resultados de distancias">
+        <h2 class="visually-hidden">Distancias Calculadas</h2>
         <div class="row">
             <div class="col-md-6">
-                <div class="alert alert-info">
+                <div class="alert alert-info" role="status">
                     <strong>Distancia entre puntos:</strong> 
-                    <span id="distance-points" class="badge bg-primary">Calcular</span>
+                    <span id="distance-points" class="badge bg-primary" aria-live="polite">Calcular</span>
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="alert alert-info">
+                <div class="alert alert-info" role="status">
                     <strong>Distancia entre perímetros:</strong> 
-                    <span id="distance-perimeters" class="badge bg-primary">Calcular</span>
+                    <span id="distance-perimeters" class="badge bg-primary" aria-live="polite">Calcular</span>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <div class="container mt-4 glass-container">
-        <div id="map">
-            <button class="center-map-btn" onclick="centerMap()" title="Centrar en los círculos">
-                <i class="fas fa-crosshairs" style="color: #007bff; font-size: 16px;"></i>
+    </section>
+
+    <!-- Map section -->
+    <main class="container mt-4 glass-container fade-in" style="animation-delay: 0.4s;" 
+          role="main" aria-label="Mapa interactivo">
+        <div id="map" role="application" aria-label="Mapa de ubicaciones" tabindex="0">
+            <button class="center-map-btn" onclick="centerMap()" 
+                    title="Centrar en los círculos" 
+                    aria-label="Centrar mapa en las ubicaciones marcadas">
+                <i class="fas fa-crosshairs" style="color: var(--primary-blue); font-size: 16px;" aria-hidden="true"></i>
             </button>
         </div>
-    </div>
+    </main>
     
-    <!-- Modal con loader centrado y más grande -->
-    <div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <!-- Loading Modal optimizado -->
+    <div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true" role="dialog" aria-labelledby="loadingModalLabel">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content text-center p-4">
-                <div class="spinner-border text-danger" role="status">
-                    <span class="visually-hidden">Cargando...</span>
+                <div class="d-flex flex-column align-items-center justify-content-center">
+                    <div class="spinner-border text-danger" role="status" aria-label="Cargando">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p id="loadingModalLabel" class="mt-3 fs-4 fw-bold mb-0">Graficando...</p>
                 </div>
-                <p class="mt-3 fs-4 fw-bold">Graficando...</p>
             </div>
         </div>
     </div>
 
     <script>
-        var map = L.map('map', {
-            maxZoom: 25,
-            zoomControl: true
-        }).setView([10.3913661, -75.480072], 20);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors',
-            maxZoom: 25
-        }).addTo(map);
-
-        document.getElementById('mapForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            let form = event.target;
-            if (!validateFields()) {
-                form.classList.add('was-validated');
-                return;
+        // Configuración global optimizada
+        const CONFIG = {
+            map: {
+                center: [10.3913661, -75.480072],
+                defaultZoom: 20,
+                maxZoom: 25,
+                minZoom: 1
+            },
+            animation: {
+                duration: 1500,
+                fadeDelay: 150,
+                pulseDelay: 200
+            },
+            validation: {
+                lat: { min: -90, max: 90, regex: /^-?\d+(\.\d+)?$/ },
+                lng: { min: -180, max: 180, regex: /^-?\d+(\.\d+)?$/ },
+                radius: { min: 0.1, max: Infinity, regex: /^\d+(\.\d+)?$/ }
             }
+        };
 
-            let loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
-            loadingModal.show();
-
-            setTimeout(() => {
-                loadingModal.hide();
-                drawMap();
-            }, 2000);
-        });
-
-        function validateFields() {
-            let latLngRegex = /^-?\d+(\.\d+)?$/;
-            let radiusRegex = /^\d+(\.\d+)?$/;
-
-            let isValid = true;
-
-            function checkField(id, min, max, regex) {
-                let field = document.getElementById(id);
-                let value = parseFloat(field.value);
-                if (!regex.test(field.value) || value < min || value > max) {
-                    field.classList.add('is-invalid');
-                    isValid = false;
-                } else {
-                    field.classList.remove('is-invalid');
-                }
+        // Caché de elementos DOM para mejor rendimiento
+        const DOM = {
+            mapForm: null,
+            loadingModal: null,
+            distancePoints: null,
+            distancePerimeters: null,
+            centerBtn: null,
+            init() {
+                this.mapForm = document.getElementById('mapForm');
+                this.loadingModal = document.getElementById('loadingModal');
+                this.distancePoints = document.getElementById('distance-points');
+                this.distancePerimeters = document.getElementById('distance-perimeters');
+                this.centerBtn = document.querySelector('.center-map-btn');
             }
+        };
 
-            checkField('latUser', -90, 90, latLngRegex);
-            checkField('lngUser', -180, 180, latLngRegex);
-            checkField('radiusUser', 0.1, Infinity, radiusRegex);
-            checkField('latPDV', -90, 90, latLngRegex);
-            checkField('lngPDV', -180, 180, latLngRegex);
-            checkField('radiusPDV', 0.1, Infinity, radiusRegex);
+        // Objeto principal de la aplicación
+        const MapApp = {
+            map: null,
+            currentGroup: null,
+            modalInstance: null,
 
-            return isValid;
-        }
+            // Inicialización del mapa
+            initMap() {
+                this.map = L.map('map', {
+                    maxZoom: CONFIG.map.maxZoom,
+                    minZoom: CONFIG.map.minZoom,
+                    zoomControl: true,
+                    preferCanvas: true // Mejor rendimiento
+                }).setView(CONFIG.map.center, CONFIG.map.defaultZoom);
 
-        function drawMap() {
-            map.eachLayer(layer => {
-                if (!!layer.toGeoJSON) {
-                    map.removeLayer(layer);
-                }
-            });
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors',
+                    maxZoom: CONFIG.map.maxZoom,
+                    detectRetina: true // Soporte para pantallas de alta resolución
+                }).addTo(this.map);
+            },
 
-            let latUser = parseFloat(document.getElementById('latUser').value);
-            let lngUser = parseFloat(document.getElementById('lngUser').value);
-            let radiusUser = parseFloat(document.getElementById('radiusUser').value);
-            let latPDV = parseFloat(document.getElementById('latPDV').value);
-            let lngPDV = parseFloat(document.getElementById('lngPDV').value);
-            let radiusPDV = parseFloat(document.getElementById('radiusPDV').value);
+            // Validación optimizada de campos
+            validateFields() {
+                const fields = [
+                    { id: 'latUser', type: 'lat' },
+                    { id: 'lngUser', type: 'lng' },
+                    { id: 'radiusUser', type: 'radius' },
+                    { id: 'latPDV', type: 'lat' },
+                    { id: 'lngPDV', type: 'lng' },
+                    { id: 'radiusPDV', type: 'radius' }
+                ];
 
-            // Calcular la distancia entre los puntos (en metros)
-            let distancePoints = calculateDistance(latUser, lngUser, latPDV, lngPDV);
-            
-            // Calcular la distancia entre los perímetros (en metros)
-            // Si es negativa, significa que los círculos se superponen
-            let distancePerimeters = distancePoints - (radiusUser + radiusPDV);
-            
-            // Actualizar los labels
-            document.getElementById('distance-points').textContent = distancePoints.toFixed(2) + ' metros';
-            document.getElementById('distance-perimeters').textContent = 
-                distancePerimeters < 0 ? 
-                'Superpuestos (' + Math.abs(distancePerimeters).toFixed(2) + ' m)' : 
-                distancePerimeters.toFixed(2) + ' metros';
+                let isValid = true;
 
-            // Cambiar el color de los badges según la distancia
-            document.getElementById('distance-perimeters').className = 
-                distancePerimeters < 0 ? 'badge bg-success' : 'badge bg-danger';
-
-            let isIntersecting = distancePerimeters < 0;
-            let borderColor = 'black';
-            let fillColor = isIntersecting ? 'green' : '#003366';
-
-            let userCircle = L.circle([latUser, lngUser], { color: borderColor, fillColor: fillColor, fillOpacity: 0.5, radius: radiusUser }).addTo(map);
-            let pdvCircle = L.circle([latPDV, lngPDV], { color: borderColor, fillColor: fillColor, fillOpacity: 0.5, radius: radiusPDV }).addTo(map);
-
-            // Crear iconos personalizados
-            let userIcon = L.divIcon({
-                html: '<div style="background-color: #007bff; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-user" style="font-size: 14px;"></i></div>',
-                className: '',
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
-            });
-
-            let storeIcon = L.divIcon({
-                html: '<div style="background-color: #dc3545; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-store" style="font-size: 14px;"></i></div>',
-                className: '',
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
-            });
-
-            // Agregar marcadores (pins) con iconos personalizados
-            let userMarker = L.marker([latUser, lngUser], {icon: userIcon}).addTo(map)
-                .bindPopup(`<b>👤 Usuario</b><br>Lat: ${latUser}<br>Lng: ${lngUser}<br>Radio: ${radiusUser}m`);
-            
-            let pdvMarker = L.marker([latPDV, lngPDV], {icon: storeIcon}).addTo(map)
-                .bindPopup(`<b>🏪 PDV/Tienda</b><br>Lat: ${latPDV}<br>Lng: ${lngPDV}<br>Radio: ${radiusPDV}m`);
-
-            // Crear un grupo con círculos y marcadores para calcular los límites correctamente
-            let group = L.featureGroup([userCircle, pdvCircle, userMarker, pdvMarker]);
-            
-            // Guardar el grupo globalmente para poder centrarlo desde el botón
-            window.currentGroup = group;
-            
-            // Ajustar el mapa para mostrar ambos círculos completos con padding
-            map.fitBounds(group.getBounds(), { 
-                padding: [20, 20],
-                maxZoom: 18 // Limitar el zoom máximo para que no se acerque demasiado
-            });
-        }
-        
-        // Función para calcular la distancia entre dos puntos geográficos en metros
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Radio de la Tierra en metros
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            const distance = R * c;
-            return distance;
-        }
-
-        // Función para centrar el mapa en la posición inicial
-        function centerMap() {
-            // Si hay círculos dibujados, centrar en ellos
-            if (window.currentGroup) {
-                map.fitBounds(window.currentGroup.getBounds(), { 
-                    padding: [20, 20],
-                    maxZoom: 18 
+                fields.forEach(({ id, type }) => {
+                    const field = document.getElementById(id);
+                    const value = parseFloat(field.value);
+                    const config = CONFIG.validation[type];
+                    
+                    if (!config.regex.test(field.value) || value < config.min || value > config.max) {
+                        this.animateFieldError(field);
+                        isValid = false;
+                    } else {
+                        this.animateFieldSuccess(field);
+                    }
                 });
-            } else {
-                // Si no hay círculos, usar la posición inicial
-                map.setView([10.3913661, -75.480072], 15);
+
+                return isValid;
+            },
+
+            // Animaciones de validación optimizadas
+            animateFieldError(field) {
+                field.classList.add('is-invalid');
+                field.style.transform = 'translateX(5px)';
+                
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        field.style.transform = 'translateX(-5px)';
+                        setTimeout(() => {
+                            field.style.transform = 'translateX(0)';
+                        }, 150);
+                    }, 150);
+                });
+            },
+
+            animateFieldSuccess(field) {
+                field.classList.remove('is-invalid');
+                field.style.transform = 'scale(1.02)';
+                
+                setTimeout(() => {
+                    field.style.transform = 'scale(1)';
+                }, CONFIG.animation.pulseDelay);
+            },
+
+            // Cálculo de distancia optimizado usando Haversine
+            calculateDistance(lat1, lon1, lat2, lon2) {
+                const R = 6371000; // Radio de la Tierra en metros
+                const toRad = Math.PI / 180;
+                
+                const dLat = (lat2 - lat1) * toRad;
+                const dLon = (lon2 - lon1) * toRad;
+                
+                const a = Math.sin(dLat / 2) ** 2 + 
+                         Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * 
+                         Math.sin(dLon / 2) ** 2;
+                
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            },
+
+            // Actualización de distancias con animaciones optimizadas
+            updateDistanceLabels(distancePoints, distancePerimeters) {
+                const elements = [DOM.distancePoints, DOM.distancePerimeters];
+                
+                // Fade out
+                elements.forEach(el => el.style.opacity = '0.5');
+                
+                setTimeout(() => {
+                    DOM.distancePoints.textContent = `${distancePoints.toFixed(2)} metros`;
+                    DOM.distancePerimeters.textContent = distancePerimeters < 0 
+                        ? `Superpuestos (${Math.abs(distancePerimeters).toFixed(2)} m)`
+                        : `${distancePerimeters.toFixed(2)} metros`;
+
+                    DOM.distancePerimeters.className = distancePerimeters < 0 
+                        ? 'badge bg-success' : 'badge bg-danger';
+                    
+                    // Fade in con pulse
+                    elements.forEach(el => {
+                        el.style.opacity = '1';
+                        el.style.transform = 'scale(1.1)';
+                        
+                        setTimeout(() => {
+                            el.style.transform = 'scale(1)';
+                        }, CONFIG.animation.pulseDelay);
+                    });
+                }, CONFIG.animation.fadeDelay);
+            },
+
+            // Creación de iconos optimizada
+            createIcon(color, icon) {
+                return L.divIcon({
+                    html: `<div class="custom-marker" style="background-color: ${color};">
+                             <i class="fas fa-${icon}"></i>
+                           </div>`,
+                    className: '',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+            },
+
+            // Función principal de dibujo optimizada
+            drawMap() {
+                // Limpiar capas existentes de forma eficiente
+                this.map.eachLayer(layer => {
+                    if (layer.toGeoJSON) {
+                        this.map.removeLayer(layer);
+                    }
+                });
+
+                // Obtener valores de forma batch
+                const coords = {
+                    user: {
+                        lat: parseFloat(document.getElementById('latUser').value),
+                        lng: parseFloat(document.getElementById('lngUser').value),
+                        radius: parseFloat(document.getElementById('radiusUser').value)
+                    },
+                    pdv: {
+                        lat: parseFloat(document.getElementById('latPDV').value),
+                        lng: parseFloat(document.getElementById('lngPDV').value),
+                        radius: parseFloat(document.getElementById('radiusPDV').value)
+                    }
+                };
+
+                // Cálculos de distancia
+                const distancePoints = this.calculateDistance(
+                    coords.user.lat, coords.user.lng, 
+                    coords.pdv.lat, coords.pdv.lng
+                );
+                const distancePerimeters = distancePoints - (coords.user.radius + coords.pdv.radius);
+                
+                // Actualizar labels
+                this.updateDistanceLabels(distancePoints, distancePerimeters);
+
+                // Configuración visual
+                const isIntersecting = distancePerimeters < 0;
+                const style = {
+                    color: 'black',
+                    fillColor: isIntersecting ? 'green' : '#003366',
+                    fillOpacity: 0.5
+                };
+
+                // Crear elementos del mapa
+                const userCircle = L.circle([coords.user.lat, coords.user.lng], 
+                    { ...style, radius: coords.user.radius }).addTo(this.map);
+                
+                const pdvCircle = L.circle([coords.pdv.lat, coords.pdv.lng], 
+                    { ...style, radius: coords.pdv.radius }).addTo(this.map);
+
+                const userMarker = L.marker([coords.user.lat, coords.user.lng], 
+                    { icon: this.createIcon('#007bff', 'user') }).addTo(this.map)
+                    .bindPopup(`<b>👤 Usuario</b><br>Lat: ${coords.user.lat}<br>Lng: ${coords.user.lng}<br>Radio: ${coords.user.radius}m`);
+                
+                const pdvMarker = L.marker([coords.pdv.lat, coords.pdv.lng], 
+                    { icon: this.createIcon('#dc3545', 'store') }).addTo(this.map)
+                    .bindPopup(`<b>🏪 PDV/Tienda</b><br>Lat: ${coords.pdv.lat}<br>Lng: ${coords.pdv.lng}<br>Radio: ${coords.pdv.radius}m`);
+
+                // Agrupar y centrar
+                this.currentGroup = L.featureGroup([userCircle, pdvCircle, userMarker, pdvMarker]);
+                window.currentGroup = this.currentGroup; // Compatibilidad
+
+                this.map.fitBounds(this.currentGroup.getBounds(), { 
+                    padding: [20, 20],
+                    maxZoom: 18
+                });
+            },
+
+            // Función de centrado optimizada
+            centerMap() {
+                if (DOM.centerBtn) {
+                    DOM.centerBtn.style.transform = 'scale(0.95) translateY(-1px)';
+                    setTimeout(() => {
+                        DOM.centerBtn.style.transform = 'scale(1.1) translateY(-2px)';
+                    }, 100);
+                }
+
+                const options = { 
+                    padding: [20, 20],
+                    maxZoom: 18,
+                    duration: CONFIG.animation.duration / 1000
+                };
+
+                if (this.currentGroup) {
+                    this.map.flyToBounds(this.currentGroup.getBounds(), options);
+                } else {
+                    this.map.flyTo(CONFIG.map.center, 15, { 
+                        duration: CONFIG.animation.duration / 1000 
+                    });
+                }
+            },
+
+            // Inicialización de eventos
+            initEvents() {
+                DOM.mapForm.addEventListener('submit', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    if (!this.validateFields()) {
+                        DOM.mapForm.classList.add('was-validated');
+                        return;
+                    }
+
+                    if (!this.modalInstance) {
+                        this.modalInstance = new bootstrap.Modal(DOM.loadingModal);
+                    }
+                    
+                    this.modalInstance.show();
+
+                    setTimeout(() => {
+                        this.modalInstance.hide();
+                        this.drawMap();
+                    }, 2000);
+                });
+            },
+
+            // Inicialización principal
+            init() {
+                DOM.init();
+                this.initMap();
+                this.initEvents();
+                
+                // Agregar CSS para iconos personalizados
+                const style = document.createElement('style');
+                style.textContent = `
+                    .custom-marker {
+                        width: 30px;
+                        height: 30px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border: 2px solid white;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                        color: white;
+                        font-size: 14px;
+                    }
+                `;
+                document.head.appendChild(style);
             }
+        };
+
+        // Función global para compatibilidad (llamada desde onclick)
+        function centerMap() {
+            MapApp.centerMap();
         }
+
+        // Inicialización cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', () => {
+            MapApp.init();
+        });
     </script>
 </body>
 </html>
