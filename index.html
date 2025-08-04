@@ -77,9 +77,13 @@
     </div>
 
     <script>
-        var map = L.map('map').setView([10.3913661, -75.480072], 20);
+        var map = L.map('map', {
+            maxZoom: 25,
+            zoomControl: true
+        }).setView([10.3913661, -75.480072], 20);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 25
         }).addTo(map);
 
         document.getElementById('mapForm').addEventListener('submit', function(event) {
@@ -164,11 +168,17 @@
             let borderColor = 'black';
             let fillColor = isIntersecting ? 'green' : '#003366';
 
-            L.circle([latUser, lngUser], { color: borderColor, fillColor: fillColor, fillOpacity: 0.5, radius: radiusUser }).addTo(map);
-            L.circle([latPDV, lngPDV], { color: borderColor, fillColor: fillColor, fillOpacity: 0.5, radius: radiusPDV }).addTo(map);
+            let userCircle = L.circle([latUser, lngUser], { color: borderColor, fillColor: fillColor, fillOpacity: 0.5, radius: radiusUser }).addTo(map);
+            let pdvCircle = L.circle([latPDV, lngPDV], { color: borderColor, fillColor: fillColor, fillOpacity: 0.5, radius: radiusPDV }).addTo(map);
 
-            let bounds = L.latLngBounds([ [latUser, lngUser], [latPDV, lngPDV] ]);
-            map.fitBounds(bounds, { padding: [50, 50] });
+            // Crear un grupo con ambos círculos para calcular los límites correctamente
+            let group = L.featureGroup([userCircle, pdvCircle]);
+            
+            // Ajustar el mapa para mostrar ambos círculos completos con padding
+            map.fitBounds(group.getBounds(), { 
+                padding: [20, 20],
+                maxZoom: 18 // Limitar el zoom máximo para que no se acerque demasiado
+            });
         }
         
         // Función para calcular la distancia entre dos puntos geográficos en metros
